@@ -65,7 +65,7 @@ python main.py
 
 All the data used for training the model, including training accuracy, validation accuracy, and loss metrics, is available in this GitHub repository. Additionally, a Google Drive link will be provided where you can access all necessary training datasets, model files, and experimental results.
 
-🔗 Google Drive Link: [To be added]
+🔗 Google Drive Link: https://drive.google.com/drive/folders/1cN6RijZVnjvTw_8-eRDtwz-h2TIfN68T?usp=sharing
 
 
 
