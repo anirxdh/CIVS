@@ -1,0 +1,148 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hand Gesture-Based Voting System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            padding: 40px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .instructions {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+        .gesture-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .gesture-item {
+            padding: 15px;
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: bold;
+        }
+        .gesture-item:hover {
+            border-color: #667eea;
+            background: #e3f2fd;
+        }
+        .status {
+            text-align: center;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+        .active {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+        .button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 5px;
+            font-size: 1.1em;
+            cursor: pointer;
+            margin: 10px;
+            transition: background 0.3s ease;
+        }
+        .button:hover {
+            background: #5a6fd8;
+        }
+        .vote-counts {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+        .vote-count {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+            padding: 5px 0;
+            border-bottom: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>✋ Hand Gesture-Based Voting System</h1>
+        
+        <div class="instructions">
+            <h3>Hand Gesture Voting Instructions:</h3>
+            <div class="gesture-list">
+                <div class="gesture-item">1 finger = BJP</div>
+                <div class="gesture-item">2 fingers = ADMK</div>
+                <div class="gesture-item">3 fingers = DMK</div>
+                <div class="gesture-item">4 fingers = Congress</div>
+                <div class="gesture-item">5 fingers = DMDK</div>
+            </div>
+            <p style="margin-top: 15px; text-align: center; font-style: italic;">
+                Show your hand gesture to the camera, then make the confirmation gesture to finalize your vote.
+            </p>
+        </div>
+        
+        <div id="status" class="status">
+            Click 'Start Camera' to begin gesture voting
+        </div>
+        
+        <div style="text-align: center;">
+            <button id="cameraBtn" class="button" onclick="startCamera()">Start Camera</button>
+            <button class="button" onclick="window.location.href='/'">Back to Menu</button>
+        </div>
+        
+        <div class="vote-counts">
+            <h3>Current Vote Counts:</h3>
+            <div id="voteCounts">
+                {% for party, count in vote_counts.items() %}
+                <div class="vote-count">
+                    <span>{{ party }}:</span>
+                    <span id="count-{{ party }}">{{ count }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function startCamera() {
+            document.getElementById('status').className = 'status active';
+            document.getElementById('status').textContent = 'Starting camera... Show your hand gesture to the camera';
+            document.getElementById('cameraBtn').disabled = true;
+            
+            // In a real implementation, this would start the gesture detection
+            // For now, we'll simulate it
+            setTimeout(() => {
+                document.getElementById('status').textContent = 'Camera started. Show your hand gesture in the camera window.';
+            }, 2000);
+        }
+    </script>
+</body>
+</html>
+    

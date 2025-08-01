@@ -1,0 +1,194 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio-Based Voting System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            padding: 40px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .party-info {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+        .party-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .party-item {
+            padding: 10px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .status {
+            text-align: center;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+        .listening {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+        .success {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+        .error {
+            background: #ffebee;
+            color: #c62828;
+        }
+        .button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 5px;
+            font-size: 1.1em;
+            cursor: pointer;
+            margin: 10px;
+            transition: background 0.3s ease;
+        }
+        .button:hover {
+            background: #5a6fd8;
+        }
+        .button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .vote-counts {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+        .vote-count {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+            padding: 5px 0;
+            border-bottom: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎙️ Audio-Based Voting System</h1>
+        
+        <div class="party-info">
+            <h3>Available Political Parties:</h3>
+            <div class="party-list">
+                {% for num, party in parties.items() %}
+                <div class="party-item">
+                    <strong>{{ num }}. {{ party }}</strong>
+                </div>
+                {% endfor %}
+            </div>
+            <p style="margin-top: 15px; text-align: center; font-style: italic;">
+                Speak the number of the party you want to vote for.
+            </p>
+        </div>
+        
+        <div id="status" class="status">
+            Click 'Start Listening' to begin voting
+        </div>
+        
+        <div style="text-align: center;">
+            <button id="listenBtn" class="button" onclick="startListening()">Start Listening</button>
+            <button class="button" onclick="window.location.href='/'">Back to Menu</button>
+        </div>
+        
+        <div class="vote-counts">
+            <h3>Current Vote Counts:</h3>
+            <div id="voteCounts">
+                {% for party, count in vote_counts.items() %}
+                <div class="vote-count">
+                    <span>{{ party }}:</span>
+                    <span id="count-{{ party }}">{{ count }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isListening = false;
+        
+        function startListening() {
+            if (isListening) return;
+            
+            isListening = true;
+            document.getElementById('listenBtn').disabled = true;
+            document.getElementById('status').className = 'status listening';
+            document.getElementById('status').textContent = 'Listening... Speak the party number clearly';
+            
+            fetch('/start_listening', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            }).then(() => {
+                checkSpeechResult();
+            });
+        }
+        
+        function checkSpeechResult() {
+            fetch('/get_speech_result')
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.is_listening && data.result) {
+                        isListening = false;
+                        document.getElementById('listenBtn').disabled = false;
+                        
+                        if (data.result.includes('Vote recorded')) {
+                            document.getElementById('status').className = 'status success';
+                            document.getElementById('status').textContent = data.result;
+                            updateVoteCounts(data.vote_counts);
+                        } else {
+                            document.getElementById('status').className = 'status error';
+                            document.getElementById('status').textContent = data.result;
+                        }
+                    } else if (data.is_listening) {
+                        setTimeout(checkSpeechResult, 1000);
+                    }
+                });
+        }
+        
+        function updateVoteCounts(counts) {
+            for (const [party, count] of Object.entries(counts)) {
+                const element = document.getElementById(`count-${party}`);
+                if (element) {
+                    element.textContent = count;
+                }
+            }
+        }
+    </script>
+</body>
+</html>
+    
