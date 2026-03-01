@@ -1,8 +1,13 @@
+# =============================================================================
+# ARCHIVED: signdetect.py - Original standalone desktop gesture detection app
+# This file is NO LONGER USED in the HGVS web application.
+# The gesture detection logic has been refactored into gesture.py.
+# Kept for reference and archival purposes only.
+# =============================================================================
+
 #-*- coding: utf-8 -*-
 import numpy as np
 import cv2
-import keras
-from keras.preprocessing.image import ImageDataGenerator
 import tensorflow as tf
 import time 
 import pyttsx3
@@ -13,7 +18,7 @@ import threading
 # Initialize text-to-speech engine
 converter = pyttsx3.init()
 
-model = keras.models.load_model(r"model.h5")
+model = tf.keras.models.load_model(r"model.h5")
 
 word_dict = {0:'1',1:'2',2:'3',3:'4',4:'5',5:'6',6:'7',7:'8',8:'9',9:'done',10:'notdone'}
 

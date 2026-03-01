@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}Vote Recorded - HGVS{% endblock %}
+
+{% block content %}
+<div class="complete-container">
+    <div class="check-icon">&#10003;</div>
+    <h2>Vote Recorded Successfully</h2>
+    <p>Thank you for exercising your democratic right. Your vote has been securely recorded.</p>
+    <p class="instruction">Please step away from the voting booth. The system will reset automatically for the next voter.</p>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Auto-redirect to auth page after 8 seconds for next voter
+    setTimeout(function() {
+        window.location.href = '/';
+    }, 8000);
+</script>
+{% endblock %}

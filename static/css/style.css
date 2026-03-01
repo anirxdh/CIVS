@@ -1,0 +1,455 @@
+:root {
+    --gov-navy: #003087;
+    --gov-navy-dark: #001f5c;
+    --gov-saffron: #FF671F;
+    --gov-green: #046A38;
+    --gov-white: #FFFFFF;
+    --gov-light-bg: #F4F6F9;
+    --gov-border: #D0D5DD;
+    --gov-text: #1A1A1A;
+    --gov-muted: #555555;
+    --gov-success: #046A38;
+    --gov-error: #B91C1C;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: "Segoe UI", "Arial", sans-serif;
+    background-color: var(--gov-light-bg);
+    color: var(--gov-text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ===== HEADER ===== */
+.gov-header {
+    background-color: var(--gov-navy);
+    color: var(--gov-white);
+}
+
+.tricolor-bar {
+    display: flex;
+    height: 5px;
+}
+
+.tricolor-bar .saffron { flex: 1; background: var(--gov-saffron); }
+.tricolor-bar .white   { flex: 1; background: var(--gov-white); }
+.tricolor-bar .green   { flex: 1; background: var(--gov-green); }
+
+.header-content {
+    padding: 14px 32px;
+    text-align: center;
+}
+
+.header-content h1 {
+    font-size: 1.3rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.header-content h2 {
+    font-size: 0.95rem;
+    font-weight: 400;
+    margin-top: 3px;
+    opacity: 0.85;
+}
+
+/* ===== MAIN CONTENT ===== */
+.main-content {
+    flex: 1;
+    padding: 28px 32px;
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+/* ===== FOOTER ===== */
+.gov-footer {
+    background: var(--gov-navy-dark);
+    color: rgba(255, 255, 255, 0.6);
+    text-align: center;
+    padding: 10px;
+    font-size: 0.78rem;
+    letter-spacing: 0.3px;
+}
+
+/* ===== AUTH PAGE ===== */
+.auth-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    padding-top: 16px;
+}
+
+.auth-container h2 {
+    font-size: 1.5rem;
+    color: var(--gov-navy);
+    font-weight: 700;
+}
+
+.instruction {
+    font-size: 1rem;
+    color: var(--gov-muted);
+    text-align: center;
+}
+
+.camera-frame {
+    position: relative;
+    border: 3px solid var(--gov-navy);
+    border-radius: 4px;
+    overflow: hidden;
+    background: #000;
+}
+
+.camera-frame img {
+    display: block;
+    max-width: 100%;
+}
+
+.camera-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0, 48, 135, 0.85);
+    color: white;
+    text-align: center;
+    padding: 10px;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
+}
+
+.status-panel {
+    background: var(--gov-white);
+    border: 1px solid var(--gov-border);
+    border-left: 4px solid var(--gov-navy);
+    border-radius: 2px;
+    padding: 14px 20px;
+    font-size: 1rem;
+    max-width: 640px;
+    width: 100%;
+    text-align: center;
+}
+
+.status-panel.success {
+    border-left-color: var(--gov-success);
+    color: var(--gov-success);
+}
+
+.status-panel.error {
+    border-left-color: var(--gov-error);
+    color: var(--gov-error);
+}
+
+/* ===== VOTING PAGE ===== */
+.voting-page {
+    display: grid;
+    grid-template-areas:
+        "greeting greeting"
+        "parties  camera"
+        "status   status";
+    grid-template-columns: 1fr 340px;
+    gap: 20px;
+    align-items: start;
+}
+
+.voter-greeting {
+    grid-area: greeting;
+    background: var(--gov-white);
+    border: 1px solid var(--gov-border);
+    border-left: 4px solid var(--gov-success);
+    padding: 12px 20px;
+    border-radius: 2px;
+    font-size: 1.05rem;
+}
+
+.voter-greeting strong {
+    color: var(--gov-navy);
+}
+
+/* Party Grid */
+.party-grid {
+    grid-area: parties;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 14px;
+}
+
+.party-card {
+    background: var(--gov-white);
+    border: 2px solid var(--gov-border);
+    border-radius: 4px;
+    padding: 16px 10px;
+    text-align: center;
+    transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+    cursor: default;
+}
+
+.party-card:hover {
+    border-color: var(--gov-navy);
+}
+
+.party-card.selected {
+    border-color: var(--gov-saffron);
+    box-shadow: 0 0 0 3px rgba(255, 103, 31, 0.25);
+    transform: scale(1.03);
+}
+
+.party-card.confirmed {
+    border-color: var(--gov-success);
+    box-shadow: 0 0 0 3px rgba(4, 106, 56, 0.25);
+}
+
+.party-logo {
+    max-width: 72px;
+    max-height: 72px;
+    margin: 8px auto;
+    display: block;
+    object-fit: contain;
+}
+
+.party-name {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--gov-navy);
+    margin: 8px 0 6px;
+}
+
+.sign-reference {
+    border-top: 1px solid var(--gov-border);
+    padding-top: 8px;
+    margin-top: 4px;
+}
+
+.sign-image {
+    max-width: 56px;
+    max-height: 56px;
+    margin: 4px auto;
+    display: block;
+    object-fit: contain;
+}
+
+.sign-caption {
+    font-size: 0.72rem;
+    color: var(--gov-muted);
+    display: block;
+    margin-top: 2px;
+}
+
+/* Camera Corner */
+.camera-corner {
+    grid-area: camera;
+    position: sticky;
+    top: 20px;
+    text-align: center;
+}
+
+.camera-corner img {
+    border: 2px solid var(--gov-navy);
+    border-radius: 4px;
+    display: block;
+    width: 100%;
+    background: #000;
+}
+
+.camera-label {
+    background: var(--gov-navy);
+    color: white;
+    padding: 8px;
+    font-size: 0.8rem;
+    text-align: center;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    border-radius: 0 0 4px 4px;
+}
+
+/* Voting Status */
+.voting-status {
+    grid-area: status;
+}
+
+.status-message {
+    background: var(--gov-white);
+    border: 1px solid var(--gov-border);
+    border-left: 4px solid var(--gov-navy);
+    padding: 12px 16px;
+    font-size: 1rem;
+    border-radius: 2px;
+}
+
+.progress-bar {
+    background: #e0e0e0;
+    border-radius: 4px;
+    height: 26px;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 10px;
+}
+
+.progress-fill {
+    height: 100%;
+    background: var(--gov-saffron);
+    transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 4px;
+}
+
+.progress-bar span {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 0.78rem;
+    color: var(--gov-text);
+    font-weight: 600;
+}
+
+/* ===== CONFIRMATION OVERLAY ===== */
+.overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+}
+
+.confirmation-box {
+    background: white;
+    border: 3px solid var(--gov-navy);
+    border-radius: 6px;
+    padding: 36px 44px;
+    text-align: center;
+    max-width: 520px;
+    width: 90%;
+}
+
+.confirmation-box h3 {
+    font-size: 1.4rem;
+    color: var(--gov-navy);
+    margin-bottom: 14px;
+}
+
+.confirmation-box p {
+    margin-bottom: 12px;
+    line-height: 1.5;
+    font-size: 1.05rem;
+}
+
+.confirmation-box .instruction {
+    font-size: 0.95rem;
+    color: var(--gov-muted);
+}
+
+.thumbs-icons {
+    display: flex;
+    justify-content: space-around;
+    margin-top: 20px;
+    gap: 20px;
+}
+
+.thumb-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 16px 20px;
+    border: 2px solid var(--gov-border);
+    border-radius: 6px;
+    flex: 1;
+}
+
+.thumb-option.confirm-opt {
+    border-color: var(--gov-success);
+    background: rgba(4, 106, 56, 0.05);
+}
+
+.thumb-option.cancel-opt {
+    border-color: var(--gov-error);
+    background: rgba(185, 28, 28, 0.05);
+}
+
+.thumb-icon {
+    font-size: 2.2rem;
+    line-height: 1;
+}
+
+.thumb-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--gov-text);
+}
+
+/* ===== VOTE COMPLETE PAGE ===== */
+.complete-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    padding-top: 60px;
+    text-align: center;
+}
+
+.complete-container h2 {
+    font-size: 1.8rem;
+    color: var(--gov-success);
+}
+
+.complete-container p {
+    font-size: 1.1rem;
+    color: var(--gov-muted);
+    max-width: 500px;
+}
+
+.check-icon {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: var(--gov-success);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 2.5rem;
+    font-weight: bold;
+}
+
+/* ===== CONFIRMATION HOLD BAR ===== */
+.confirmation-box .progress-bar {
+    height: 32px;
+    border-radius: 16px;
+    background: #e8ecf0;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+.confirmation-box .progress-fill {
+    border-radius: 16px;
+    transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    background: linear-gradient(90deg, var(--gov-green), #08a04e);
+    box-shadow: 0 0 8px rgba(4, 106, 56, 0.4);
+}
+
+.confirmation-box .progress-fill.cancel-fill {
+    background: linear-gradient(90deg, var(--gov-error), #e03333);
+    box-shadow: 0 0 8px rgba(185, 28, 28, 0.4);
+}
+
+@keyframes bar-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.85; }
+}
+
+.confirmation-box .progress-bar.active {
+    animation: bar-pulse 1s ease-in-out infinite;
+}

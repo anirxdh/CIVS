@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}Voter Authentication - HGVS{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <h2>Voter Identity Verification</h2>
+    <p class="instruction">Please look directly at the camera for identity verification.</p>
+
+    <div class="camera-frame">
+        <img src="{{ url_for('video_feed') }}" id="camera-feed" alt="Camera Feed" width="640" height="480">
+        <div class="camera-overlay">
+            <span id="auth-overlay-text">VERIFYING IDENTITY</span>
+        </div>
+    </div>
+
+    <div class="status-panel" id="status-panel">
+        <p id="auth-message">Initializing camera. Please wait...</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let polling = true;
+
+    function pollAuthStatus() {
+        if (!polling) return;
+
+        fetch('/auth_status')
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                var msgEl = document.getElementById('auth-message');
+                var overlayEl = document.getElementById('auth-overlay-text');
+                var panelEl = document.getElementById('status-panel');
+
+                msgEl.textContent = data.message;
+
+                if (data.state === 'matched') {
+                    polling = false;
+                    overlayEl.textContent = 'IDENTITY VERIFIED';
+                    panelEl.className = 'status-panel success';
+                    msgEl.textContent = 'Welcome, ' + data.voter_name + '. Redirecting to voting...';
+
+                    fetch('/auth_success', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({})
+                    })
+                    .then(function(r) { return r.json(); })
+                    .then(function(result) {
+                        if (result.success) {
+                            setTimeout(function() {
+                                window.location.href = '/voting';
+                            }, 1500);
+                        }
+                    });
+
+                } else if (data.state === 'failed') {
+                    polling = false;
+                    overlayEl.textContent = 'VERIFICATION FAILED';
+                    panelEl.className = 'status-panel error';
+
+                } else {
+                    overlayEl.textContent = 'VERIFYING IDENTITY';
+                    setTimeout(pollAuthStatus, 600);
+                }
+            })
+            .catch(function() {
+                setTimeout(pollAuthStatus, 1000);
+            });
+    }
+
+    setTimeout(pollAuthStatus, 1000);
+</script>
+{% endblock %}

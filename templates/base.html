@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Hand Gesture Based Voting System{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <header class="gov-header">
+        <div class="tricolor-bar">
+            <span class="saffron"></span>
+            <span class="white"></span>
+            <span class="green"></span>
+        </div>
+        <div class="header-content">
+            <h1>Hand Gesture Based Voting System</h1>
+            <h2>HGVS &mdash; Secure Contactless Voting</h2>
+        </div>
+    </header>
+
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="gov-footer">
+        <p>HGVS &mdash; Hand Gesture Based Voting System</p>
+    </footer>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

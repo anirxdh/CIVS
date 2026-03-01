@@ -152,13 +152,21 @@ tmp/
 *.ogg
 
 # Image files (if not needed)
-*.jpg
-*.jpeg
-*.png
-*.gif
-*.bmp
-*.tiff
-*.webp
+# *.jpg
+# *.jpeg
+# *.png
+# NOTE: Image blocking disabled - static/parties/ and static/signs/ need images
+
+# Voter data (sensitive - contains ID photos)
+voter_data/
+
+# MediaPipe model files (downloaded at setup)
+models/*.task
+
+# SQLite database
+votes.db
+*.db
+!db.py
 
 # Data files
 *.csv

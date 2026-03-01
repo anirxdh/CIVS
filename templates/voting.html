@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+
+{% block title %}Cast Your Vote - HGVS{% endblock %}
+
+{% block content %}
+<div class="voting-page">
+    <div class="voter-greeting">
+        <p>Welcome, <strong>{{ voter_name }}</strong>. Please cast your vote using hand gestures.</p>
+    </div>
+
+    <div class="party-grid">
+        {% for num, party in parties.items() %}
+        <div class="party-card" id="party-card-{{ num }}">
+            <img src="{{ url_for('static', filename=party.logo) }}"
+                 class="party-logo"
+                 alt="{{ party.name }}"
+                 onerror="this.style.display='none'">
+            <div class="party-name">{{ party.name }}</div>
+            <div class="sign-reference">
+                <img src="{{ url_for('static', filename=party.sign) }}"
+                     class="sign-image"
+                     alt="Show {{ num }} finger(s)"
+                     onerror="this.style.display='none'">
+                <span class="sign-caption">Show {{ num }} finger{% if num|int > 1 %}s{% endif %}</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="camera-corner">
+        <img src="{{ url_for('video_feed') }}" id="vote-camera" alt="Camera Feed">
+        <div class="camera-label" id="gesture-status-label">Detecting...</div>
+    </div>
+
+    <div class="voting-status">
+        <div id="calibration-bar" class="progress-bar" style="display:none">
+            <div id="calibration-fill" class="progress-fill"></div>
+            <span id="calibration-text">Calibrating...</span>
+        </div>
+        <div id="hold-bar" class="progress-bar" style="display:none">
+            <div id="hold-fill" class="progress-fill" style="background:var(--gov-green)"></div>
+            <span id="hold-text">Hold gesture...</span>
+        </div>
+        <div id="status-message" class="status-message">Show your hand gesture to vote.</div>
+    </div>
+</div>
+
+<!-- Confirmation Overlay -->
+<div id="confirmation-overlay" class="overlay" style="display:none">
+    <div class="confirmation-box">
+        <h3>Confirm Your Vote</h3>
+        <p id="confirmation-text"></p>
+        <p class="instruction">Use hand gestures to confirm or cancel your selection.</p>
+        <div class="thumbs-icons">
+            <div class="thumb-option confirm-opt">
+                <img src="{{ url_for('static', filename='signs/Thumbs-up.png') }}" alt="Thumbs Up" style="width:80px;height:80px;object-fit:contain;">
+                <span class="thumb-label">Thumbs Up = Confirm</span>
+            </div>
+            <div class="thumb-option cancel-opt">
+                <img src="{{ url_for('static', filename='signs/thumbs-down.jpg') }}" alt="Thumbs Down" style="width:80px;height:80px;object-fit:contain;">
+                <span class="thumb-label">Thumbs Down = Cancel</span>
+            </div>
+        </div>
+        <div id="confirm-hold-bar" class="progress-bar" style="display:none;margin-top:16px;">
+            <div id="confirm-hold-fill" class="progress-fill" style="background:var(--gov-green)"></div>
+            <span id="confirm-hold-text">Hold gesture...</span>
+        </div>
+        <p id="confirm-status-message" class="instruction" style="margin-top:8px;"></p>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    var lastState = null;
+
+    function highlightParty(gesture) {
+        var cards = document.querySelectorAll('.party-card');
+        for (var i = 0; i < cards.length; i++) {
+            cards[i].classList.remove('selected');
+        }
+        if (gesture) {
+            var card = document.getElementById('party-card-' + gesture);
+            if (card) card.classList.add('selected');
+        }
+    }
+
+    function pollGestureStatus() {
+        fetch('/gesture_status')
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                var state = data.state;
+                var statusMsg = document.getElementById('status-message');
+                var cameraLabel = document.getElementById('gesture-status-label');
+                var calibBar = document.getElementById('calibration-bar');
+                var holdBar = document.getElementById('hold-bar');
+
+                statusMsg.textContent = data.message || '';
+                cameraLabel.textContent = data.message || 'Detecting...';
+
+                // Calibration bar (no longer used - detection starts immediately)
+                calibBar.style.display = 'none';
+
+                // Hold progress bar
+                if (state === 'holding' || (state === 'detecting' && data.hold_progress > 0)) {
+                    holdBar.style.display = 'block';
+                    var pct = Math.min(100, (data.hold_progress / 3.0) * 100);
+                    document.getElementById('hold-fill').style.width = pct + '%';
+                    document.getElementById('hold-text').textContent = 'Hold: ' + data.hold_progress + 's / 3.0s';
+                } else {
+                    holdBar.style.display = 'none';
+                }
+
+                // Highlight selected party
+                if (state === 'detecting' || state === 'holding') {
+                    highlightParty(data.current_gesture);
+                }
+
+                // Confirmation overlay
+                if (state === 'confirming') {
+                    if (lastState !== 'confirming') {
+                        document.getElementById('confirmation-text').textContent =
+                            'You have selected: ' + data.selected_party;
+                        document.getElementById('confirmation-overlay').style.display = 'flex';
+                        highlightParty(null);
+                    }
+                    // Update confirmation hold progress bar
+                    var confirmBar = document.getElementById('confirm-hold-bar');
+                    var confirmFill = document.getElementById('confirm-hold-fill');
+                    var confirmProg = data.confirm_hold_progress || 0;
+                    var confirmMsg = document.getElementById('confirm-status-message');
+                    if (confirmProg > 0) {
+                        confirmBar.style.display = 'block';
+                        confirmBar.classList.add('active');
+                        var confirmPct = Math.min(100, (confirmProg / 3.0) * 100);
+                        confirmFill.style.width = confirmPct + '%';
+                        document.getElementById('confirm-hold-text').textContent = 'Hold: ' + confirmProg + 's / 3.0s';
+                        // Green for confirm, red for cancel
+                        if (data.message && data.message.indexOf('Cancel') !== -1) {
+                            confirmFill.className = 'progress-fill cancel-fill';
+                            confirmFill.style.background = '';
+                        } else {
+                            confirmFill.className = 'progress-fill';
+                            confirmFill.style.background = '';
+                        }
+                    } else {
+                        confirmBar.style.display = 'none';
+                        confirmBar.classList.remove('active');
+                        confirmFill.style.width = '0%';
+                    }
+                    confirmMsg.textContent = data.message || '';
+                }
+
+                // Vote done
+                if (state === 'done') {
+                    fetch('/confirm_vote', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({party: data.selected_party})
+                    }).then(function() {
+                        window.location.href = '/vote_complete';
+                    });
+                    return;
+                }
+
+                // Cancelled - restart
+                if (state === 'cancelled') {
+                    document.getElementById('confirmation-overlay').style.display = 'none';
+                    highlightParty(null);
+                    statusMsg.textContent = 'Vote cancelled. Restarting gesture detection...';
+                    setTimeout(function() {
+                        fetch('/restart_gesture', {method: 'POST'})
+                            .then(function() {
+                                lastState = null;
+                                setTimeout(pollGestureStatus, 500);
+                            });
+                    }, 1500);
+                    return;
+                }
+
+                lastState = state;
+                setTimeout(pollGestureStatus, 300);
+            })
+            .catch(function() {
+                setTimeout(pollGestureStatus, 1000);
+            });
+    }
+
+    setTimeout(pollGestureStatus, 500);
+</script>
+{% endblock %}
