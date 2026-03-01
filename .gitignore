@@ -160,8 +160,9 @@ tmp/
 # Voter data (sensitive - contains ID photos)
 voter_data/
 
-# MediaPipe model files (downloaded at setup)
+# Model files (downloaded at setup, too large for GitHub)
 models/*.task
+models/*.pt
 
 # SQLite database
 votes.db

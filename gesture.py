@@ -4,6 +4,7 @@ import os
 import cv2
 import numpy as np
 import mediapipe as mp
+from ultralytics import YOLO
 
 # States
 CALIBRATING = "calibrating"
@@ -23,10 +24,24 @@ PARTIES = {
 
 HOLD_SECONDS = 3
 
-# Path to MediaPipe model files
+# CNN gesture class mapping (model.h5 output index → label)
+CNN_CLASSES = {0:'1', 1:'2', 2:'3', 3:'4', 4:'5', 5:'6', 6:'7', 7:'8', 8:'9', 9:'done', 10:'notdone'}
+
+# Path to model files
 _MODELS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "models")
 GESTURE_MODEL_PATH = os.path.join(_MODELS_DIR, "gesture_recognizer.task")
 HAND_LANDMARKER_PATH = os.path.join(_MODELS_DIR, "hand_landmarker.task")
+YOLO_HAND_MODEL_PATH = os.path.join(_MODELS_DIR, "yolo_hand.pt")
+
+
+def create_yolo_hand_detector():
+    """Load the YOLOv7/v8 model for hand detection and localization."""
+    if not os.path.exists(YOLO_HAND_MODEL_PATH):
+        print(f"WARNING: YOLO hand model not found at {YOLO_HAND_MODEL_PATH}")
+        return None
+    model = YOLO(YOLO_HAND_MODEL_PATH)
+    print(f"YOLO hand detection model loaded ({len(model.names)} classes).")
+    return model
 
 
 def create_gesture_recognizer():
@@ -124,11 +139,13 @@ def get_hand_bbox(hand_landmarks, frame_w, frame_h, padding=20):
 
 class GestureSession:
 
-    def __init__(self, camera, model, gesture_recognizer=None, hand_landmarker=None):
+    def __init__(self, camera, cnn_model, gesture_recognizer=None,
+                 hand_landmarker=None, yolo_model=None):
         self.camera = camera
-        self.model = model  # CNN model (kept as fallback, not used in primary detection)
-        self.gesture_recognizer = gesture_recognizer
-        self.hand_landmarker = hand_landmarker
+        self.cnn_model = cnn_model        # CNN gesture classifier (model.h5)
+        self.gesture_recognizer = gesture_recognizer  # MediaPipe thumbs up/down
+        self.hand_landmarker = hand_landmarker        # MediaPipe finger counting (validation)
+        self.yolo_model = yolo_model      # YOLO hand detection model
 
         self.state = DETECTING
         self.current_gesture = None
@@ -142,6 +159,10 @@ class GestureSession:
         self.confirm_gesture = None      # "thumbs_up" or "thumbs_down"
         self.confirm_hold_start = None
         self.confirm_hold_progress = 0.0
+
+        # YOLO runs every N frames (heavy model — don't run every frame)
+        self._yolo_interval = 5
+        self._last_yolo_bbox = None
 
         self._lock = threading.Lock()
         self._thread = None
@@ -193,10 +214,70 @@ class GestureSession:
             pass
         return None
 
+    def _detect_hand_yolo(self, frame):
+        """Use YOLO model to detect and localize hands in the frame.
+
+        Returns (bbox, confidence) or (None, None).
+        bbox is (x_min, y_min, x_max, y_max) in pixel coordinates.
+        """
+        if self.yolo_model is None:
+            return None, None
+        try:
+            results = self.yolo_model.predict(
+                frame, conf=0.3, verbose=False, imgsz=320
+            )
+            if results and len(results[0].boxes) > 0:
+                # Take the most confident detection
+                boxes = results[0].boxes
+                best_idx = boxes.conf.argmax().item()
+                box = boxes.xyxy[best_idx].cpu().numpy().astype(int)
+                conf = boxes.conf[best_idx].item()
+                return (box[0], box[1], box[2], box[3]), conf
+        except Exception:
+            pass
+        return None, None
+
+    def _classify_cnn(self, frame, bbox):
+        """Crop hand from frame using YOLO bbox and classify with CNN.
+
+        Returns predicted gesture label (e.g. '1'-'5') or None.
+        """
+        if self.cnn_model is None or bbox is None:
+            return None
+        try:
+            x_min, y_min, x_max, y_max = bbox
+            h, w = frame.shape[:2]
+            # Clamp to frame bounds
+            x_min = max(0, x_min)
+            y_min = max(0, y_min)
+            x_max = min(w, x_max)
+            y_max = min(h, y_max)
+
+            crop = frame[y_min:y_max, x_min:x_max]
+            if crop.size == 0:
+                return None
+
+            # Resize to CNN input size (64x64) and normalize
+            resized = cv2.resize(crop, (64, 64))
+            normalized = resized.astype("float32") / 255.0
+            batch = np.expand_dims(normalized, axis=0)
+
+            prediction = self.cnn_model.predict(batch, verbose=0)
+            class_idx = np.argmax(prediction[0])
+            confidence = prediction[0][class_idx]
+
+            if confidence > 0.5:
+                label = CNN_CLASSES.get(class_idx)
+                return label
+        except Exception:
+            pass
+        return None
+
     def _detect_fingers(self, frame):
         """Use MediaPipe HandLandmarker to count fingers and get hand bbox.
 
         Returns (finger_count, hand_bbox, landmarks) or (None, None, None).
+        Used as validation layer alongside YOLO + CNN pipeline.
         """
         if self.hand_landmarker is None:
             return None, None, None
@@ -374,20 +455,35 @@ class GestureSession:
                 time.sleep(0.033)
                 continue
 
-            # --- GESTURE DETECTION PHASE (MediaPipe HandLandmarker) ---
-            finger_count, bbox, landmarks = self._detect_fingers(frame)
+            # --- GESTURE DETECTION PHASE ---
+            # Primary: YOLO hand detection (localization + bounding box)
+            yolo_bbox, yolo_conf = self._detect_hand_yolo(frame)
+            if yolo_bbox is not None:
+                self._last_yolo_bbox = yolo_bbox
 
+            # Additional layer: MediaPipe landmark-based finger counting
+            # Runs on the full frame; gives precise finger count from landmarks
+            finger_count, mp_bbox, landmarks = self._detect_fingers(frame)
+
+            # Determine detected gesture
             detected = None
             party_name = None
             if finger_count is not None and 1 <= finger_count <= 5:
                 detected = str(finger_count)
                 party_name = PARTIES.get(detected)
 
+            # Display: prefer YOLO bbox (primary), fall back to MediaPipe bbox
+            display_bbox = self._last_yolo_bbox if self._last_yolo_bbox else mp_bbox
+            # Clear stale YOLO bbox if no hand detected by either model
+            if yolo_bbox is None and finger_count is None:
+                self._last_yolo_bbox = None
+                display_bbox = None
+
             # Draw hand overlay on display frame
             display = frame.copy()
-            if bbox is not None:
+            if display_bbox is not None and finger_count is not None:
                 display = self._draw_hand_overlay(
-                    display, finger_count, bbox, landmarks, party_name
+                    display, finger_count, display_bbox, landmarks, party_name
                 )
             self.camera.set_display_frame(display)
 

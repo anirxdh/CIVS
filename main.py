@@ -11,7 +11,10 @@ from flask import (
 from db import init_db, record_vote
 from camera import CameraManager
 from face_auth import FaceAuthSession
-from gesture import GestureSession, create_gesture_recognizer, create_hand_landmarker
+from gesture import (
+    GestureSession, create_gesture_recognizer, create_hand_landmarker,
+    create_yolo_hand_detector,
+)
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("HGVS_SECRET_KEY", "hgvs-dev-secret-key-change-in-prod")
@@ -23,18 +26,25 @@ import tensorflow as tf
 MODEL = None
 GESTURE_RECOGNIZER = None
 HAND_LANDMARKER = None
+YOLO_HAND_MODEL = None
 
 def load_models():
-    global MODEL, GESTURE_RECOGNIZER, HAND_LANDMARKER
+    global MODEL, GESTURE_RECOGNIZER, HAND_LANDMARKER, YOLO_HAND_MODEL
     model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "model.h5")
     MODEL = tf.keras.models.load_model(model_path)
-    print("CNN gesture model loaded (fallback).")
+    print("CNN gesture classifier loaded (64x64, 11 classes).")
+
+    YOLO_HAND_MODEL = create_yolo_hand_detector()
+    if YOLO_HAND_MODEL:
+        print("YOLO hand detection model loaded (primary detector).")
+    else:
+        print("WARNING: YOLO hand model not found. Using MediaPipe only.")
 
     GESTURE_RECOGNIZER = create_gesture_recognizer()
     print("MediaPipe GestureRecognizer initialized (thumbs up/down).")
 
     HAND_LANDMARKER = create_hand_landmarker()
-    print("MediaPipe HandLandmarker initialized (finger counting).")
+    print("MediaPipe HandLandmarker initialized (finger counting validation).")
 
 # ---------------------------------------------------------------------------
 # Global session state (one voter at a time - kiosk mode)
@@ -118,7 +128,9 @@ def voting():
         _auth_session = None
 
     camera = get_camera()
-    _gesture_session = GestureSession(camera, MODEL, GESTURE_RECOGNIZER, HAND_LANDMARKER)
+    _gesture_session = GestureSession(
+        camera, MODEL, GESTURE_RECOGNIZER, HAND_LANDMARKER, YOLO_HAND_MODEL
+    )
     _gesture_session.start()
 
     return render_template(
@@ -151,7 +163,9 @@ def restart_gesture():
     if "voter_id" not in session:
         return jsonify({"success": False}), 400
     camera = get_camera()
-    _gesture_session = GestureSession(camera, MODEL, GESTURE_RECOGNIZER, HAND_LANDMARKER)
+    _gesture_session = GestureSession(
+        camera, MODEL, GESTURE_RECOGNIZER, HAND_LANDMARKER, YOLO_HAND_MODEL
+    )
     _gesture_session.start()
     return jsonify({"success": True})
 
