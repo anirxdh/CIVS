@@ -124,6 +124,14 @@
                         document.getElementById('confirmation-overlay').style.display = 'flex';
                         highlightParty(null);
                     }
+
+                    // Highlight only the detected thumb option
+                    var confirmOpt = document.querySelector('.confirm-opt');
+                    var cancelOpt = document.querySelector('.cancel-opt');
+                    var cg = data.confirm_gesture;
+                    confirmOpt.classList.toggle('active', cg === 'thumbs_up');
+                    cancelOpt.classList.toggle('active', cg === 'thumbs_down');
+
                     // Update confirmation hold progress bar
                     var confirmBar = document.getElementById('confirm-hold-bar');
                     var confirmFill = document.getElementById('confirm-hold-fill');
@@ -135,8 +143,7 @@
                         var confirmPct = Math.min(100, (confirmProg / 3.0) * 100);
                         confirmFill.style.width = confirmPct + '%';
                         document.getElementById('confirm-hold-text').textContent = 'Hold: ' + confirmProg + 's / 3.0s';
-                        // Green for confirm, red for cancel
-                        if (data.message && data.message.indexOf('Cancel') !== -1) {
+                        if (cg === 'thumbs_down') {
                             confirmFill.className = 'progress-fill cancel-fill';
                             confirmFill.style.background = '';
                         } else {

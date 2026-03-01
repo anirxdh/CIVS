@@ -10,7 +10,25 @@
     <div class="camera-frame">
         <img src="{{ url_for('video_feed') }}" id="camera-feed" alt="Camera Feed" width="640" height="480">
         <div class="camera-overlay">
-            <span id="auth-overlay-text">VERIFYING IDENTITY</span>
+            <span id="auth-overlay-text">INITIALIZING</span>
+        </div>
+    </div>
+
+    <!-- Step Tracker -->
+    <div class="auth-steps">
+        <div class="auth-step" id="step-detect">
+            <div class="step-indicator">1</div>
+            <div class="step-label">Detect Face</div>
+        </div>
+        <div class="step-connector"></div>
+        <div class="auth-step" id="step-verify">
+            <div class="step-indicator">2</div>
+            <div class="step-label">Verify Identity</div>
+        </div>
+        <div class="step-connector"></div>
+        <div class="auth-step" id="step-confirm">
+            <div class="step-indicator">3</div>
+            <div class="step-label">Confirmed</div>
         </div>
     </div>
 
@@ -18,11 +36,40 @@
         <p id="auth-message">Initializing camera. Please wait...</p>
     </div>
 </div>
+
+<!-- Verified Overlay -->
+<div id="verified-overlay" class="overlay" style="display:none">
+    <div class="verified-box">
+        <div class="verified-check">&#10003;</div>
+        <h3>Identity Verified</h3>
+        <p id="verified-name"></p>
+        <p class="verified-sub">Redirecting to voting booth...</p>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script>
     let polling = true;
+    let lastAuthState = null;
+
+    function setStep(stepNum) {
+        var steps = ['step-detect', 'step-verify', 'step-confirm'];
+        for (var i = 0; i < steps.length; i++) {
+            var el = document.getElementById(steps[i]);
+            el.classList.remove('active', 'done');
+            if (i < stepNum - 1) {
+                el.classList.add('done');
+            } else if (i === stepNum - 1) {
+                el.classList.add('active');
+            }
+        }
+        // Connectors
+        var connectors = document.querySelectorAll('.step-connector');
+        for (var j = 0; j < connectors.length; j++) {
+            connectors[j].classList.toggle('done', j < stepNum - 1);
+        }
+    }
 
     function pollAuthStatus() {
         if (!polling) return;
@@ -36,11 +83,37 @@
 
                 msgEl.textContent = data.message;
 
-                if (data.state === 'matched') {
+                if (data.state === 'detecting') {
+                    setStep(1);
+                    overlayEl.textContent = 'SCANNING FOR FACE';
+                    panelEl.className = 'status-panel';
+
+                } else if (data.state === 'face_found') {
+                    setStep(1);
+                    overlayEl.textContent = 'FACE DETECTED';
+                    panelEl.className = 'status-panel';
+
+                } else if (data.state === 'verifying') {
+                    setStep(2);
+                    overlayEl.textContent = 'CHECKING DATABASE';
+                    panelEl.className = 'status-panel';
+
+                } else if (data.state === 'verified') {
+                    setStep(3);
+                    overlayEl.textContent = 'IDENTITY VERIFIED';
+                    panelEl.className = 'status-panel success';
+
+                } else if (data.state === 'matched') {
                     polling = false;
+                    setStep(3);
                     overlayEl.textContent = 'IDENTITY VERIFIED';
                     panelEl.className = 'status-panel success';
                     msgEl.textContent = 'Welcome, ' + data.voter_name + '. Redirecting to voting...';
+
+                    // Show verified overlay
+                    document.getElementById('verified-name').textContent =
+                        'Welcome, ' + data.voter_name;
+                    document.getElementById('verified-overlay').style.display = 'flex';
 
                     fetch('/auth_success', {
                         method: 'POST',
@@ -52,25 +125,26 @@
                         if (result.success) {
                             setTimeout(function() {
                                 window.location.href = '/voting';
-                            }, 1500);
+                            }, 2500);
                         }
                     });
+                    return;
 
                 } else if (data.state === 'failed') {
                     polling = false;
                     overlayEl.textContent = 'VERIFICATION FAILED';
                     panelEl.className = 'status-panel error';
-
-                } else {
-                    overlayEl.textContent = 'VERIFYING IDENTITY';
-                    setTimeout(pollAuthStatus, 600);
+                    return;
                 }
+
+                lastAuthState = data.state;
+                setTimeout(pollAuthStatus, 400);
             })
             .catch(function() {
                 setTimeout(pollAuthStatus, 1000);
             });
     }
 
-    setTimeout(pollAuthStatus, 1000);
+    setTimeout(pollAuthStatus, 800);
 </script>
 {% endblock %}

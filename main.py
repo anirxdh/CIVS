@@ -73,7 +73,14 @@ def index():
 
 @app.route('/auth')
 def auth():
-    global _auth_session
+    global _auth_session, _gesture_session
+    # Stop any previous sessions
+    if _auth_session is not None:
+        _auth_session.stop()
+        _auth_session = None
+    if _gesture_session is not None:
+        _gesture_session.stop()
+        _gesture_session = None
     camera = get_camera()
     _auth_session = FaceAuthSession(camera)
     _auth_session.start()
@@ -104,7 +111,12 @@ def voting():
     if "voter_id" not in session:
         return redirect(url_for('auth'))
 
-    global _gesture_session
+    # Stop face auth session before starting gesture detection
+    global _auth_session, _gesture_session
+    if _auth_session is not None:
+        _auth_session.stop()
+        _auth_session = None
+
     camera = get_camera()
     _gesture_session = GestureSession(camera, MODEL, GESTURE_RECOGNIZER, HAND_LANDMARKER)
     _gesture_session.start()

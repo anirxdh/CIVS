@@ -49,11 +49,12 @@ def list_voters():
     if not voters:
         print("No voters registered.")
         return
-    print(f"{'ID':<15} {'Name':<25} {'Voted':<8} {'Photo'}")
-    print("-" * 70)
+    print(f"\n  {'Voter ID':<15} {'Status'}")
+    print("  " + "-" * 30)
     for v in voters:
-        voted = "Yes" if v["has_voted"] else "No"
-        print(f"{v['voter_id']:<15} {v['name']:<25} {voted:<8} {v['photo_path']}")
+        status = "Voted" if v["has_voted"] else "Not Voted"
+        print(f"  {v['voter_id']:<15} {status}")
+    print(f"\n  Total registered voters: {len(voters)}")
 
 
 def show_results():
@@ -63,14 +64,15 @@ def show_results():
     if not counts:
         print("No votes recorded yet.")
         return
-    print(f"\n{'Party':<20} {'Votes':<10} {'Percentage'}")
-    print("-" * 45)
+    print(f"\n  {'Party':<20} {'Votes':>8}   {'Percentage':>10}")
+    print("  " + "-" * 45)
     for party, count in sorted(counts.items(), key=lambda x: -x[1]):
         pct = (count / total * 100) if total > 0 else 0
-        print(f"{party:<20} {count:<10} {pct:.1f}%")
-    print("-" * 45)
-    print(f"{'Total':<20} {total}")
-    print("\nNote: Votes are anonymous — no voter-to-vote mapping exists.")
+        bar = "#" * int(pct / 5)
+        print(f"  {party:<20} {count:>8}   {pct:>5.1f}%  {bar}")
+    print("  " + "-" * 45)
+    print(f"  {'Total':<20} {total:>8}")
+    print("\n  Note: Votes are anonymous -- no voter-to-vote mapping exists.")
 
 
 def reset_votes():

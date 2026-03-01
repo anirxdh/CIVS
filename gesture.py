@@ -145,10 +145,17 @@ class GestureSession:
 
         self._lock = threading.Lock()
         self._thread = None
+        self._stopped = False
 
     def start(self):
         self._thread = threading.Thread(target=self._detection_loop, daemon=True)
         self._thread.start()
+
+    def stop(self):
+        """Forcefully stop the detection loop. Call before transitioning away."""
+        with self._lock:
+            self._stopped = True
+        self.camera.clear_display_frame()
 
     def get_status(self):
         with self._lock:
@@ -159,7 +166,8 @@ class GestureSession:
                 "selected_party": self.selected_party,
                 "hold_progress": round(self.hold_progress, 1),
                 "confirm_hold_progress": round(self.confirm_hold_progress, 1),
-                "calibration_progress": 100,  # No calibration needed anymore
+                "confirm_gesture": self.confirm_gesture,
+                "calibration_progress": 100,
             }
 
     def _detect_thumbs(self, frame):
@@ -269,7 +277,7 @@ class GestureSession:
     def _detection_loop(self):
         while True:
             with self._lock:
-                if self.state in (DONE, CANCELLED):
+                if self._stopped or self.state in (DONE, CANCELLED):
                     self.camera.clear_display_frame()
                     return
 
