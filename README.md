@@ -1,5 +1,7 @@
 # 🗳️ Contactless Integrated Voting System (CIVS)
 
+> **Write-up:** [A Voting Booth You Never Touch, From Face Scan to Thumbs Up](https://anirudhvasudevan.com/blog/civs-contactless-voting-patent/), the architecture, decisions and lessons. Built by [Anirudh Vasudevan](https://anirudhvasudevan.com/).
+
 ### **A Secure, Inclusive, and Touch-Free Voting System Using Hand Gestures & Speech Recognition**
 
 ## 📌 **Overview**
